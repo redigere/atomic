@@ -10,10 +10,6 @@ readonly SCRIPT_FILE="${0:A}"
 readonly SCRIPT_DIR="${SCRIPT_FILE:h}"
 source "$SCRIPT_DIR/../lib/common.sh"
 
-# =============================================================================
-# Functions
-# =============================================================================
-
 get-os-version() {
     rpm -E %fedora
 }
@@ -83,16 +79,26 @@ switch-distro() {
         exit 0
     fi
     
+    if confirm "Do you want to RESET your home directory (delete old configs)?"; then
+        log-info "Performing home directory reset..."
+        
+        local user_script="$SCRIPT_DIR/reset-home.sh"
+        local real_user
+        real_user="$(get-real-user)"
+        
+        if [[ -f "$user_script" ]]; then
+            sudo -u "$real_user" "$user_script"
+        else
+            log-error "Reset script not found at $user_script"
+        fi
+    fi
+
     log-info "Starting rebase to $target_distro..."
     rpm-ostree rebase "$target_ref"
     
     log-success "Rebase initiated successfully."
     log-info "Please reboot your system to boot into $target_distro."
 }
-
-# =============================================================================
-# Entry Point
-# =============================================================================
 
 main() {
     switch-distro
