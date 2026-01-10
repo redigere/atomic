@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env zsh
 # Fedora Atomic Common Library
 
 set -euo pipefail
@@ -55,7 +55,7 @@ log-warn() { printf "${YELLOW}[WARN]${NC} %s\n" "$*" >&2; }
 log-error() { printf "${RED}[ERROR]${NC} %s\n" "$*" >&2; }
 log-success() { printf "${GREEN}[OK]${NC} %s\n" "$*"; }
 log-title() { 
-    printf "\n${BOLD}${BLUE}==== %s ====${NC}\n" "$*"
+    printf "\n${BOLD}${BLUE}**** %s ****${NC}\n" "$*"
 }
 
 fix-ownership() {
@@ -82,7 +82,7 @@ confirm() {
     local prompt="${1:-Are you sure?}"
     printf "${YELLOW}%s [y/N] ${NC}" "$prompt"
     read -r response
-    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+    if [[ ! "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
         log-info "Operation cancelled."
         return 1
     fi

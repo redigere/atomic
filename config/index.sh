@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env zsh
 # Fedora Atomic Configuration Index
 
 set -euo pipefail
@@ -44,7 +44,7 @@ run-scripts() {
             ;;
         silverblue)
             distro_scripts=(
-                "./silverblue/set-papirus.sh"
+                "$SCRIPT_DIR/script/silverblue/set-theme.sh"
                 "./silverblue/set-extensions.sh"
                 "./silverblue/optimize-animations.sh"
             )
