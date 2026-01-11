@@ -30,7 +30,7 @@ Atomic Manager automatically detects your distribution (**Fedora Silverblue** or
 ## Installation
 
 ```bash
-git clone https://github.com/kairosci/atomic.git
+git clone https://github.com/redigere/atomic.git
 cd atomic
 sudo ./setup.sh
 ```
