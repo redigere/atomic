@@ -36,7 +36,7 @@ create-container() {
             log-info "Stopping and removing existing container..."
             # Toolbox doesn't have a 'stop' command in the same way, but we can remove it.
             # Usually podman stop is used if needed, but toolbox rm -f works.
-            toolbox rm -f "$CONTAINER_NAME" || true
+            toolbox rm -f "$CONTAINER_NAME" || log-warn "Failed to remove existing container"
         else
             log-info "Skipping creation."
             return 0

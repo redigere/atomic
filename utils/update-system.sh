@@ -35,7 +35,7 @@ cleanup() {
     rpm-ostree cleanup --base -m
     
     log-info "Removing unused Flatpak runtimes"
-    flatpak uninstall --unused --delete-data -y || true
+    flatpak uninstall --unused --delete-data -y || log-warn "Failed to uninstall unused flatpaks"
     
     log-info "Vacuuming system logs"
     journalctl --vacuum-files=0

@@ -110,7 +110,7 @@ system-upgrade() {
 
 flatpak-maintenance() {
     log-info "Flatpak maintenance"
-    flatpak uninstall --unused --delete-data -y || true
+    flatpak uninstall --unused --delete-data -y || log-warn "Failed to uninstall unused flatpaks"
     flatpak update -y
     log-success "Flatpak maintenance done"
 }

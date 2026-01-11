@@ -31,7 +31,7 @@ delete-folders() {
     fi
     
     log-info "Searching and deleting folders..."
-    sudo find / -type d -name "*$folder_name*" -exec rm -rf {} + 2>/dev/null || true
+    sudo find / -type d -name "*$folder_name*" -exec rm -rf {} + 2>/dev/null || log-warn "Failed to delete some folders matching pattern"
     
     log-success "Done"
 }

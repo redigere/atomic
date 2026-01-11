@@ -25,13 +25,13 @@ disable-services() {
     
     for svc in "${SERVICES_TO_DISABLE[@]}"; do
         if systemctl is-enabled "$svc" &>/dev/null; then
-            systemctl disable --now "$svc" 2>/dev/null || true
+            systemctl disable --now "$svc" 2>/dev/null || log-warn "Failed to disable service: $svc"
             log-info "Disabled: $svc"
         fi
     done
     
     for svc in "${SERVICES_TO_MASK[@]}"; do
-        systemctl mask "$svc" 2>/dev/null || true
+        systemctl mask "$svc" 2>/dev/null || log-warn "Failed to mask service: $svc"
         log-info "Masked: $svc"
     done
     
@@ -74,8 +74,8 @@ configure-tlp() {
     fi
     
     log-info "Enabling TLP..."
-    systemctl enable --now tlp.service 2>/dev/null || true
-    systemctl mask systemd-rfkill.service systemd-rfkill.socket 2>/dev/null || true
+    systemctl enable --now tlp.service 2>/dev/null || log-warn "Failed to enable TLP service"
+    systemctl mask systemd-rfkill.service systemd-rfkill.socket 2>/dev/null || log-warn "Failed to mask systemd-rfkill"
     log-success "TLP configured"
 }
 
@@ -85,7 +85,7 @@ disable-gnome-software-autostart() {
     
     if [[ -f "$gnome_software" ]]; then
         log-info "Disabling GNOME Software autostart..."
-        echo "Hidden=true" >> "$gnome_software" 2>/dev/null || true
+        echo "Hidden=true" >> "$gnome_software" 2>/dev/null || log-warn "Failed to disable GNOME Software autostart"
     fi
 }
 
