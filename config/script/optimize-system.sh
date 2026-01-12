@@ -25,7 +25,7 @@ readonly -a SERVICES_TO_MASK=(
 # @return void
 disable-services() {
     log-info "Disabling unnecessary services..."
-    
+
     local service_name
     for service_name in "${SERVICES_TO_DISABLE[@]}"; do
         if systemctl is-enabled "$service_name" &>/dev/null; then
@@ -33,12 +33,12 @@ disable-services() {
             log-info "Disabled: $service_name"
         fi
     done
-    
+
     for service_name in "${SERVICES_TO_MASK[@]}"; do
         systemctl mask "$service_name" 2>/dev/null || log-warn "Failed to mask service: $service_name"
         log-info "Masked: $service_name"
     done
-    
+
     log-success "Services optimized"
 }
 
@@ -48,12 +48,12 @@ disable-services() {
 # @return void
 configure-sysctl() {
     log-info "Applying kernel optimizations..."
-    
+
     local sysctl_config_file="/etc/sysctl.d/99-performance.conf"
-    
+
     cat > "$sysctl_config_file" <<'EOF'
-# Swappiness (prefer RAM over swap)
-vm.swappiness=10
+# Swappiness (100 for ZRAM to avoid file eviction)
+vm.swappiness=100
 
 # VFS cache pressure
 vm.vfs_cache_pressure=50
@@ -66,6 +66,11 @@ vm.dirty_background_ratio=5
 net.core.rmem_max=16777216
 net.core.wmem_max=16777216
 net.ipv4.tcp_fastopen=3
+net.ipv4.tcp_congestion_control=bbr
+net.core.default_qdisc=cake
+
+# Maximize open file descriptors
+fs.file-max=2097152
 
 # Disable IPv6 if not needed (optional)
 # net.ipv6.conf.all.disable_ipv6=1
@@ -73,6 +78,58 @@ EOF
 
     sysctl --system &>/dev/null
     log-success "Kernel parameters applied"
+}
+
+# Configures CPU Governor to performance.
+#
+# Tries to set governor for all cores.
+# @return void
+configure-cpu-governor() {
+    log-info "Optimizing CPU governor..."
+
+    # Try to set via cpupower if available, otherwise sysfs
+    if command-exists cpupower; then
+        cpupower frequency-set -g performance &>/dev/null || log-warn "cpupower failed"
+    else
+        # Fallback to direct sysfs manipulation (works on most modern kernels)
+        for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+            if [[ -f "$cpu" ]]; then
+                echo "performance" > "$cpu" 2>/dev/null || true
+            fi
+        done
+    fi
+    log-success "CPU governor set to performance"
+}
+
+# Configures I/O Scheduler.
+#
+# Prefers BFQ for better desktop responsiveness.
+# @return void
+configure-io-scheduler() {
+    log-info "Optimizing I/O scheduler..."
+
+    # Apply to all non-loop block devices
+    for dev in /sys/block/sd*(N) /sys/block/nvme*n*(N); do
+        if [[ -f "$dev/queue/scheduler" ]]; then
+            # Try bfq first, then mq-deadline, then none
+            if grep -q "bfq" "$dev/queue/scheduler"; then
+                echo "bfq" > "$dev/queue/scheduler" 2>/dev/null || true
+            elif grep -q "mq-deadline" "$dev/queue/scheduler"; then
+                echo "mq-deadline" > "$dev/queue/scheduler" 2>/dev/null || true
+            fi
+        fi
+    done
+
+    # Persistent udev rule for I/O scheduler
+    cat > "/etc/udev/rules.d/60-io-scheduler.rules" <<'EOF'
+# NVMe SSDs
+ACTION=="add|change", KERNEL=="nvme[0-9]*n[0-9]*", ATTR{queue/scheduler}="bfq"
+# SATA/HDD
+ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/scheduler}="bfq"
+EOF
+
+    udevadm control --reload 2>/dev/null || true
+    log-success "I/O scheduler optimized"
 }
 
 # Configures TLP for power management.
@@ -84,10 +141,15 @@ configure-tlp() {
         log-info "TLP not installed, skipping"
         return
     fi
-    
+
     log-info "Enabling TLP..."
     systemctl enable --now tlp.service 2>/dev/null || log-warn "Failed to enable TLP service"
     systemctl mask systemd-rfkill.service systemd-rfkill.socket 2>/dev/null || log-warn "Failed to mask systemd-rfkill"
+
+    # Ensure TLP performance mode on AC
+    sed -i 's/^CPU_SCALING_GOVERNOR_ON_AC=.*/CPU_SCALING_GOVERNOR_ON_AC="performance"/' /etc/tlp.conf 2>/dev/null || true
+    sed -i 's/^CPU_ENERGY_PERF_POLICY_ON_AC=.*/CPU_ENERGY_PERF_POLICY_ON_AC="performance"/' /etc/tlp.conf 2>/dev/null || true
+
     log-success "TLP configured"
 }
 
@@ -98,21 +160,45 @@ configure-tlp() {
 disable-gnome-software-autostart() {
     local autostart_directory="/etc/xdg/autostart"
     local gnome_software_desktop_entry="$autostart_directory/org.gnome.Software.desktop"
-    
+
     if [[ -f "$gnome_software_desktop_entry" ]]; then
         log-info "Disabling GNOME Software autostart..."
         echo "Hidden=true" >> "$gnome_software_desktop_entry" 2>/dev/null || log-warn "Failed to disable GNOME Software autostart"
     fi
 }
 
+# Sets up the development toolbox container.
+#
+# Invokes set-toolbox-dev.sh as the original user (not root).
+# @return void
+setup-dev-toolbox() {
+    log-info "Setting up development toolbox..."
+
+    local toolbox_script="$SCRIPT_DIR/set-toolbox-dev.sh"
+
+    if [[ -f "$toolbox_script" ]]; then
+        # We need to run this as the regular user, not root
+        if [[ -n "${SUDO_USER:-}" ]]; then
+            sudo -u "$SUDO_USER" zsh "$toolbox_script" || log-warn "Failed to setup dev toolbox"
+        else
+            log-warn "SUDO_USER not set, cannot run toolbox setup as non-root user. Skipping."
+        fi
+    else
+        log-warn "Toolbox setup script not found at $toolbox_script"
+    fi
+}
+
 main() {
     ensure-root
-    
+
     disable-services
     configure-sysctl
+    configure-cpu-governor
+    configure-io-scheduler
     configure-tlp
     disable-gnome-software-autostart
-    
+    setup-dev-toolbox
+
     log-success "System optimized"
 }
 
