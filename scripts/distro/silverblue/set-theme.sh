@@ -1,6 +1,10 @@
 #!/usr/bin/env zsh
-# Set Themes (Orchis + Papirus)
-# Installs Orchis GTK theme (Premium Dark) and Papirus Icons
+# @file set-theme.sh
+# @brief Installs Orchis GTK theme and Papirus Icons
+# @description
+#   Installs Orchis GTK theme (dark/light variants) and Papirus icons.
+#   Configures GNOME to use these themes and sets dark mode.
+#   Also configures Flatpak permissions for icon themes.
 
 set -euo pipefail
 
