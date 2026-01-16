@@ -69,20 +69,32 @@ ensure-user() {
     fi
 }
 
-log-info() { 
-  printf "${BLUE}[INFO]${NC} %s\n" "$*"; 
+# @description Exits if not running on a supported Fedora Atomic system.
+require-fedora-atomic() {
+    local distro
+    distro="$(detect-distro)"
+
+    if [[ "$distro" == "unknown" ]]; then
+        log-error "This script requires Fedora Atomic (Silverblue, Kinoite, or Cosmic)"
+        log-error "Detected: unknown. Exiting."
+        exit 1
+    fi
 }
 
-log-warn() { 
-  printf "${YELLOW}[WARN]${NC} %s\n" "$*" >&2;   
+log-info() {
+  printf "${BLUE}[INFO]${NC} %s\n" "$*";
 }
 
-log-error() { 
-  printf "${RED}[ERROR]${NC} %s\n" "$*" >&2; 
+log-warn() {
+  printf "${YELLOW}[WARN]${NC} %s\n" "$*" >&2;
 }
 
-log-success() { 
-  printf "${GREEN}[OK]${NC} %s\n" "$*"; 
+log-error() {
+  printf "${RED}[ERROR]${NC} %s\n" "$*" >&2;
+}
+
+log-success() {
+  printf "${GREEN}[OK]${NC} %s\n" "$*";
 }
 
 log-title() {
@@ -183,8 +195,8 @@ show-execution-summary() {
     local fail_count=0
 
     for name in "${EXECUTION_ORDER[@]}"; do
-        local status="${EXECUTION_RESULTS[$name]:-UNKNOWN}"
-        case "$status" in
+        local result="${EXECUTION_RESULTS[$name]:-UNKNOWN}"
+        case "$result" in
             SUCCESS)
                 printf "${GREEN}[PASS]${NC} %s\n" "$name"
                 ((success_count++))
@@ -200,7 +212,9 @@ show-execution-summary() {
     done
 
     echo ""
-    if [[ $fail_count -eq 0 ]]; then
+    if [[ $success_count -eq 0 ]] && [[ $fail_count -eq 0 ]]; then
+        log-info "No scripts were executed."
+    elif [[ $fail_count -eq 0 ]]; then
         log-success "All $success_count script(s) completed successfully."
     else
         log-warn "$success_count passed, $fail_count failed."
