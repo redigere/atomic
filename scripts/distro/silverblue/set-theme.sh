@@ -12,8 +12,8 @@ readonly SCRIPT_FILE="${0:A}"
 readonly SCRIPT_DIR="${SCRIPT_FILE:h}"
 source "$SCRIPT_DIR/../../../lib/common.sh"
 
-readonly ICON_THEME="Papirus-Dark" # Ensure we use Dark icons
-readonly GTK_THEME="Orchis-Dark-Compact" # We will install the compact version
+readonly ICON_THEME="Papirus-Dark"
+readonly GTK_THEME="Orchis-Dark"
 readonly ORCHIS_REPO="https://github.com/vinceliuice/Orchis-theme.git"
 readonly THEME_DIR="$HOME/.local/share/themes"
 readonly FONT_DIR="$HOME/.local/share/fonts"
@@ -113,7 +113,7 @@ clean-orchis-variants() {
             local theme_name
             theme_name="$(basename "$theme_path")"
             # Keep only the specifically installed variant (and maybe standard Dark as fallback if needed, but we want strict adherence)
-            if [[ "$theme_name" != "Orchis-Dark-Compact" ]]; then
+            if [[ "$theme_name" != "Orchis-Dark" ]]; then
                 log-info "Removing unused variant: $theme_name"
                 rm -rf "$theme_path"
             fi
