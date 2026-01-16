@@ -1,0 +1,25 @@
+name: Check PR Template
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  check-template:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for PULL_REQUEST_TEMPLATE.md
+        run: |
+          if [ ! -f .github/PULL_REQUEST_TEMPLATE.md ]; then
+            echo "::error::.github/PULL_REQUEST_TEMPLATE.md is missing!"
+            exit 1
+          fi
+
+      - name: Check PR Body
+        if: github.event.pull_request.body == ''
+        run: |
+          echo "::error::PR description is empty. Please use the PR template."
+          exit 1

@@ -10,7 +10,7 @@ set -euo pipefail
 readonly SCRIPT_FILE="${0:A}"
 readonly SCRIPT_DIR="${SCRIPT_FILE:h}"
 readonly PROJECT_ROOT="${SCRIPT_DIR}/../../"
-readonly TEMPLATE_FILE="${PROJECT_ROOT}/.github/pull_request_template.md"
+readonly TEMPLATE_FILE="${PROJECT_ROOT}/.github/PULL_REQUEST_TEMPLATE.md"
 
 # @description Validates that required commands are available.
 check-dependencies() {
