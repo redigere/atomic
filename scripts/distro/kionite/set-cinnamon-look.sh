@@ -14,8 +14,33 @@ readonly SCRIPT_FILE="${0:A}"
 readonly SCRIPT_DIR="${SCRIPT_FILE:h}"
 source "$SCRIPT_DIR/../../../lib/common.sh"
 
+readonly ORCHIS_REPO="https://github.com/vinceliuice/Orchis-theme.git"
+readonly THEME_DIR="$HOME/.local/share/themes"
+readonly GTK_THEME="Orchis-Dark"
+
 # Corner radius for window decorations (Cinnamon-style: subtle)
 readonly CORNER_RADIUS="4"
+
+#######################################
+# Installs the Orchis GTK theme from source (Standard variant).
+#######################################
+install-orchis() {
+    log-info "Installing Orchis theme (Standard Dark)..."
+    local work_dir
+    work_dir="$(mktemp -d)"
+
+    mkdir -p "$THEME_DIR"
+    git clone --depth 1 "$ORCHIS_REPO" "$work_dir/orchis"
+    pushd "$work_dir/orchis" > /dev/null
+
+    # Install Dark variants with premium tweaks
+    # We do NOT use 'compact' or patches here to keep it standard like Cinnamon
+    ./install.sh -c dark --tweaks solid black primary
+
+    popd > /dev/null
+    rm -rf "$work_dir"
+    log-success "Orchis theme installed"
+}
 
 #######################################
 # Writes a KDE configuration value using kwriteconfig.
@@ -115,6 +140,16 @@ configure-theme() {
     apply-kwrite "kdeglobals" "Icons" "Theme" "Papirus-Dark"
     apply-kwrite "kdeglobals" "General" "ColorScheme" "BreezeDark"
 
+    # Set GTK Theme to Orchis-Dark (for GTK apps running in Plasma)
+    # We write to both GTK2 and GTK3 config locations
+    if [[ -f "$HOME/.config/gtk-3.0/settings.ini" ]]; then
+        sed -i 's/^gtk-theme-name=.*/gtk-theme-name=Orchis-Dark/' "$HOME/.config/gtk-3.0/settings.ini" || echo "[Settings]\ngtk-theme-name=Orchis-Dark" >> "$HOME/.config/gtk-3.0/settings.ini"
+    else
+        mkdir -p "$HOME/.config/gtk-3.0"
+        echo -e "[Settings]\ngtk-theme-name=Orchis-Dark" > "$HOME/.config/gtk-3.0/settings.ini"
+    fi
+
+
     # Use default Breeze cursor
     apply-kwrite "kcminputrc" "Mouse" "cursorTheme" "breeze_cursors"
 
@@ -156,6 +191,7 @@ main() {
     log-info "Applying Cinnamon-style look to KDE Plasma..."
 
     configure-window-decoration
+    install-orchis
     configure-theme
     configure-task-switcher
     configure-animations
