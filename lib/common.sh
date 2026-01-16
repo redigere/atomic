@@ -147,14 +147,13 @@ confirm() {
     return 0
 }
 
-# @description Global arrays for execution tracking
-typeset -gA EXECUTION_RESULTS
-typeset -ga EXECUTION_ORDER
+# @description Global execution log file
+readonly EXECUTION_LOG="/tmp/atomic-exec-log-${USER:-$(id -u)}"
 
 # @description Clears execution tracking state.
 clear-execution-tracking() {
-    EXECUTION_RESULTS=()
-    EXECUTION_ORDER=()
+    rm -f "$EXECUTION_LOG"
+    touch "$EXECUTION_LOG"
 }
 
 # @description Runs a script and tracks its execution status.
@@ -163,10 +162,10 @@ clear-execution-tracking() {
 run-with-status() {
     local script="$1"
     local name="${2:-$(basename "$script")}"
+    local status="FAILED"
 
     if [[ ! -f "$script" ]]; then
-        EXECUTION_RESULTS["$name"]="NOT_FOUND"
-        EXECUTION_ORDER+=("$name")
+        echo "$name|NOT_FOUND" >> "$EXECUTION_LOG"
         log-warn "Script not found: $script"
         return 1
     fi
@@ -174,17 +173,17 @@ run-with-status() {
     log-info "Executing: $name"
 
     if "$script"; then
-        EXECUTION_RESULTS["$name"]="SUCCESS"
+        status="SUCCESS"
     else
-        EXECUTION_RESULTS["$name"]="FAILED"
+        status="FAILED"
     fi
 
-    EXECUTION_ORDER+=("$name")
+    echo "$name|$status" >> "$EXECUTION_LOG"
 }
 
 # @description Shows execution summary for all tracked scripts.
 show-execution-summary() {
-    if [[ ${#EXECUTION_ORDER[@]} -eq 0 ]]; then
+    if [[ ! -f "$EXECUTION_LOG" ]] || [[ ! -s "$EXECUTION_LOG" ]]; then
         return 0
     fi
 
@@ -194,8 +193,10 @@ show-execution-summary() {
     local success_count=0
     local fail_count=0
 
-    for name in "${EXECUTION_ORDER[@]}"; do
-        local result="${EXECUTION_RESULTS[$name]:-UNKNOWN}"
+    # Read log file line by line
+    while IFS='|' read -r name result || [[ -n "$name" ]]; do
+        [[ -z "$name" ]] && continue
+
         case "$result" in
             SUCCESS)
                 printf "${GREEN}[PASS]${NC} %s\n" "$name"
@@ -208,8 +209,11 @@ show-execution-summary() {
             NOT_FOUND)
                 printf "${YELLOW}[SKIP]${NC} %s (not found)\n" "$name"
                 ;;
+            *)
+                 printf "${YELLOW}[????]${NC} %s (unknown status: %s)\n" "$name" "$result"
+                 ;;
         esac
-    done
+    done < "$EXECUTION_LOG"
 
     echo ""
     if [[ $success_count -eq 0 ]] && [[ $fail_count -eq 0 ]]; then
