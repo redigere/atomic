@@ -71,6 +71,8 @@ install-vscode() {
     )
 
     for ext in "${extensions[@]}"; do
+        # Skip empty lines
+        [[ -z "$ext" ]] && continue
         toolbox run -c "$CONTAINER_NAME" code --install-extension "$ext" --force
     done
 
@@ -110,7 +112,17 @@ install-vscode() {
 }
 EOF'
 
-    log-success "VSCode extensions and settings configured."
+    local settings_file="$SCRIPT_DIR/../../config/vscode/settings.json"
+    if [[ -f "$settings_file" ]]; then
+         # We need to copy the file into the container.
+         # Since toolbox shares home, we can copy to the destination directly if it's in the home dir.
+         # But the destination ~/.vscode/settings.json IS in the home dir.
+         # So we can just cp it.
+         cp -f "$settings_file" "$HOME/.vscode/settings.json"
+         log-success "VSCode settings updated from $settings_file"
+    else
+        log-warn "Settings file not found: $settings_file"
+    fi
 }
 
 # @description Sets Chromium as the default browser in the container.
