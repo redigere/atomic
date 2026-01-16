@@ -1,5 +1,9 @@
 #!/usr/bin/env zsh
-# Fedora Atomic Manager
+# @file index.sh
+# @brief Fedora Atomic Manager interactive menu
+# @description
+#   Provides an interactive menu for system management tasks
+#   on Fedora Atomic variants.
 
 set -euo pipefail
 
@@ -8,6 +12,7 @@ readonly SCRIPT_DIR="${SCRIPT_FILE:h}"
 
 source "$SCRIPT_DIR/lib/common.sh"
 
+# @description Displays the main menu.
 show-menu() {
     local distro
     distro="$(detect-distro)"
@@ -28,6 +33,61 @@ show-menu() {
     printf "\n"
 }
 
+# @description Runs the optimization configuration.
+run-optimize() {
+    clear-execution-tracking
+
+    run-with-status "$SCRIPT_DIR/scripts/configure.sh" "System Configuration"
+
+    show-execution-summary
+}
+
+# @description Runs system update scripts.
+run-update() {
+    clear-execution-tracking
+
+    run-with-status "$SCRIPT_DIR/scripts/utils/update-system.sh" "System Update"
+
+    show-execution-summary
+}
+
+# @description Runs folder protection toggle.
+run-folder-protection() {
+    clear-execution-tracking
+
+    run-with-status "$SCRIPT_DIR/scripts/utils/folder-protection/main.sh" "Folder Protection"
+
+    show-execution-summary
+}
+
+# @description Runs distro switch.
+run-switch-distro() {
+    clear-execution-tracking
+
+    run-with-status "$SCRIPT_DIR/scripts/utils/switch-distro.sh" "Switch Distro"
+
+    show-execution-summary
+}
+
+# @description Runs deep clean.
+run-deep-clean() {
+    clear-execution-tracking
+
+    run-with-status "$SCRIPT_DIR/scripts/utils/reset-home.sh" "Reset Home"
+
+    show-execution-summary
+}
+
+# @description Runs IDE installation.
+run-install-ides() {
+    clear-execution-tracking
+
+    run-with-status "$SCRIPT_DIR/scripts/utils/install-ides.sh" "Install IDEs"
+
+    show-execution-summary
+}
+
+# @description Main entry point.
 main() {
     chmod +x "$SCRIPT_DIR/scripts/configure.sh" \
              "$SCRIPT_DIR/scripts/core/"*.sh \
@@ -44,13 +104,13 @@ main() {
         read -r choice
 
         case "$choice" in
-            1) confirm "Run configuration?" && "$SCRIPT_DIR/scripts/configure.sh" ;;
-            2) confirm "Update system?" && "$SCRIPT_DIR/scripts/utils/update-system.sh" ;;
+            1) confirm "Run configuration?" && run-optimize ;;
+            2) confirm "Update system?" && run-update ;;
             3) confirm "Delete folder?" && "$SCRIPT_DIR/scripts/utils/delete-folder.sh" ;;
-            4) confirm "Toggle folder protection?" && "$SCRIPT_DIR/scripts/utils/folder-protection/main.sh" ;;
-            5) confirm "Switch distro?" && "$SCRIPT_DIR/scripts/utils/switch-distro.sh" ;;
-            6) confirm "Deep clean home (risk of data loss)?" && "$SCRIPT_DIR/scripts/utils/deep-clean.sh" ;;
-            7) confirm "Install IDEs (IntelliJ, CLion, Android Studio)?" && "$SCRIPT_DIR/scripts/utils/install-ides.sh" ;;
+            4) confirm "Toggle folder protection?" && run-folder-protection ;;
+            5) confirm "Switch distro?" && run-switch-distro ;;
+            6) confirm "Deep clean home (risk of data loss)?" && run-deep-clean ;;
+            7) confirm "Install IDEs (IntelliJ, CLion, Android Studio)?" && run-install-ides ;;
             8) log-info "Exiting..."; exit 0 ;;
             *) log-warn "Invalid option: $choice" ;;
         esac
