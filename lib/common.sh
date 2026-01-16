@@ -34,6 +34,16 @@ get-user-home() {
     getent passwd "$(get-real-user)" | cut -d: -f6
 }
 
+get-core-dir() {
+    local script_dir="${SCRIPT_DIR:-${0:A:h}}"
+    echo "$script_dir/core"
+}
+
+get-distro-dir() {
+    local script_dir="${SCRIPT_DIR:-${0:A:h}}"
+    echo "$script_dir/distro"
+}
+
 ensure-root() {
     if [[ "$EUID" -ne 0 ]]; then
         printf "${YELLOW}Privilege escalation required for %s...${NC}\n" "$SCRIPT_NAME" >&2
@@ -135,7 +145,7 @@ show-execution-summary() {
     local fail_count=0
 
     for name in "${EXECUTION_ORDER[@]}"; do
-        local status="${EXECUTION_RESULTS[$name]}"
+        local status="${EXECUTION_RESULTS[$name]:-UNKNOWN}"
         case "$status" in
             SUCCESS)
                 printf "${GREEN}[PASS]${NC} %s\n" "$name"
